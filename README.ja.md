@@ -32,9 +32,9 @@
 
 <div align="center">
 
-[![Oh My OpenCode](./.github/assets/hero.jpg)](https://github.com/code-yeongyu/oh-my-openagent#oh-my-opencode)
+[![Oh My OpenCode](./.github/assets/hero.jpg)](https://github.com/george-mcintyre/oh-my-openagent#oh-my-opencode)
 
-[![Preview](./.github/assets/omo.png)](https://github.com/code-yeongyu/oh-my-openagent#oh-my-opencode)
+[![Preview](./.github/assets/omo.png)](https://github.com/george-mcintyre/oh-my-openagent#oh-my-opencode)
 
 </div>
 
@@ -44,14 +44,14 @@
 
 <div align="center">
 
-[![GitHub Release](https://img.shields.io/github/v/release/code-yeongyu/oh-my-openagent?color=369eff&labelColor=black&logo=github&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/releases)
+[![GitHub Release](https://img.shields.io/github/v/release/george-mcintyre/oh-my-openagent?color=369eff&labelColor=black&logo=github&style=flat-square)](https://github.com/george-mcintyre/oh-my-openagent/releases)
 [![npm downloads](https://img.shields.io/npm/dt/oh-my-opencode?color=ff6b35&labelColor=black&style=flat-square)](https://www.npmjs.com/package/oh-my-opencode)
-[![GitHub Contributors](https://img.shields.io/github/contributors/code-yeongyu/oh-my-openagent?color=c4f042&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/graphs/contributors)
-[![GitHub Forks](https://img.shields.io/github/forks/code-yeongyu/oh-my-openagent?color=8ae8ff&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/network/members)
-[![GitHub Stars](https://img.shields.io/github/stars/code-yeongyu/oh-my-openagent?color=ffcb47&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/stargazers)
-[![GitHub Issues](https://img.shields.io/github/issues/code-yeongyu/oh-my-openagent?color=ff80eb&labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/issues)
-[![License](https://img.shields.io/badge/license-SUL--1.0-white?labelColor=black&style=flat-square)](https://github.com/code-yeongyu/oh-my-openagent/blob/dev/LICENSE.md)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/code-yeongyu/oh-my-openagent)
+[![GitHub Contributors](https://img.shields.io/github/contributors/george-mcintyre/oh-my-openagent?color=c4f042&labelColor=black&style=flat-square)](https://github.com/george-mcintyre/oh-my-openagent/graphs/contributors)
+[![GitHub Forks](https://img.shields.io/github/forks/george-mcintyre/oh-my-openagent?color=8ae8ff&labelColor=black&style=flat-square)](https://github.com/george-mcintyre/oh-my-openagent/network/members)
+[![GitHub Stars](https://img.shields.io/github/stars/george-mcintyre/oh-my-openagent?color=ffcb47&labelColor=black&style=flat-square)](https://github.com/george-mcintyre/oh-my-openagent/stargazers)
+[![GitHub Issues](https://img.shields.io/github/issues/george-mcintyre/oh-my-openagent?color=ff80eb&labelColor=black&style=flat-square)](https://github.com/george-mcintyre/oh-my-openagent/issues)
+[![License](https://img.shields.io/badge/license-SUL--1.0-white?labelColor=black&style=flat-square)](https://github.com/george-mcintyre/oh-my-openagent/blob/dev/LICENSE.md)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/george-mcintyre/oh-my-openagent)
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | [简体中文](README.zh-cn.md)
 
@@ -101,8 +101,8 @@ OmOをインストールして、`ultrawork`とタイプしてください。狂
 以下のプロンプトをコピーして、あなたのLLMエージェント（Claude Code、AmpCode、Cursorなど）に貼り付けてください：
 
 ```
-Install and configure oh-my-opencode by following the instructions here:
-https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/refs/heads/dev/docs/guide/installation.md
+Install and configure George McIntyre's fork of oh-my-opencode by following the instructions here:
+https://raw.githubusercontent.com/george-mcintyre/oh-my-openagent/refs/heads/dev/docs/guide/installation.md
 ```
 
 もしくは[インストールガイド](docs/guide/installation.md)を直接読んでもいいですが、マジでエージェントにやらせてください。人間は設定で必ずタイポします。
@@ -112,7 +112,7 @@ https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/refs/heads/dev/do
 インストールガイドを取得して、それに従ってください：
 
 ```bash
-curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/refs/heads/dev/docs/guide/installation.md
+curl -s https://raw.githubusercontent.com/george-mcintyre/oh-my-openagent/refs/heads/dev/docs/guide/installation.md
 ```
 
 **注記**: 公開されているパッケージおよびバイナリ名は `oh-my-opencode` を使用してください。`opencode.json` 内では、互換性レイヤーがプラグインエントリ `oh-my-openagent` を優先しますが、従来の `oh-my-opencode` エントリも警告付きで読み込まれます。プラグイン設定ファイルは依然として `oh-my-opencode.json` または `oh-my-opencode.jsonc` を使用するのが一般的で、移行期間中は従来のファイル名と改名後のファイル名の両方が認識されます。
@@ -126,7 +126,7 @@ curl -s https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/refs/head
 ドキュメントを読む時代は終わりました。このテキストをエージェントに貼り付けるだけです：
 
 ```
-Read this and tell me why it's not just another boilerplate: https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/refs/heads/dev/README.md
+Read this and tell me why it's not just another boilerplate: https://raw.githubusercontent.com/george-mcintyre/oh-my-openagent/refs/heads/dev/README.md
 ```
 
 ## ハイライト
