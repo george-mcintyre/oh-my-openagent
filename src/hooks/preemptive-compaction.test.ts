@@ -1,6 +1,9 @@
 /// <reference types="bun-types" />
 
 import { afterAll, describe, it, expect, mock, beforeEach, afterEach } from "bun:test"
+import { _resetForTesting as resetSessionState, updateSessionAgent } from "../features/claude-code-session-state"
+import { clearSessionModel, getSessionModel } from "../shared/session-model-state"
+import { OhMyOpenCodeConfigSchema } from "../config"
 
 const ANTHROPIC_CONTEXT_ENV_KEY = "ANTHROPIC_1M_CONTEXT"
 const VERTEX_CONTEXT_ENV_KEY = "VERTEX_ANTHROPIC_1M_CONTEXT"
@@ -74,10 +77,15 @@ describe("preemptive-compaction", () => {
     logMock.mockClear()
     delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
     delete process.env[VERTEX_CONTEXT_ENV_KEY]
+    resetSessionState()
+    clearSessionModel("ses_context_upgrade")
+    clearSessionModel("ses_context_upgrade_fallback")
+    clearSessionModel("ses_context_upgrade_recompact")
   })
 
   afterEach(() => {
     resetContextLimitEnv()
+    resetSessionState()
   })
 
   // #given event caches token info from message.updated
@@ -760,5 +768,201 @@ describe("preemptive-compaction", () => {
     )
 
     expect(ctx.client.session.summarize).toHaveBeenCalled()
+  })
+
+  it("should upgrade session model instead of compacting when context_upgrade target has larger limit", async () => {
+    // given
+    const pluginConfig = OhMyOpenCodeConfigSchema.parse({
+      agents: {
+        sisyphus: {
+          context_upgrade: {
+            model: "anthropic/claude-opus-4-6",
+          },
+        },
+      },
+    })
+    updateSessionAgent("ses_context_upgrade", "sisyphus")
+
+    const hook = createPreemptiveCompactionHook(ctx as never, pluginConfig, {
+      anthropicContext1MEnabled: false,
+      modelContextLimitsCache: new Map([
+        ["github-copilot/claude-opus-4.6", 144000],
+        ["anthropic/claude-opus-4-6", 1000000],
+      ]),
+    })
+
+    await hook.event({
+      event: {
+        type: "message.updated",
+        properties: {
+          info: {
+            role: "assistant",
+            sessionID: "ses_context_upgrade",
+            providerID: "github-copilot",
+            modelID: "claude-opus-4.6",
+            finish: true,
+            tokens: {
+              input: 112500,
+              output: 0,
+              reasoning: 0,
+              cache: { read: 0, write: 0 },
+            },
+          },
+        },
+      },
+    })
+
+    // when
+    await hook["tool.execute.after"](
+      { tool: "bash", sessionID: "ses_context_upgrade", callID: "call_upgrade" },
+      { title: "", output: "test", metadata: null },
+    )
+
+    // then
+    expect(ctx.client.session.summarize).not.toHaveBeenCalled()
+    expect(getSessionModel("ses_context_upgrade")).toEqual({
+      providerID: "anthropic",
+      modelID: "claude-opus-4-6",
+    })
+  })
+
+  it("should fall back to compaction when context_upgrade target is not larger", async () => {
+    // given
+    const pluginConfig = OhMyOpenCodeConfigSchema.parse({
+      agents: {
+        sisyphus: {
+          context_upgrade: {
+            model: "anthropic/claude-opus-4-6",
+          },
+        },
+      },
+    })
+    updateSessionAgent("ses_context_upgrade_fallback", "sisyphus")
+
+    const hook = createPreemptiveCompactionHook(ctx as never, pluginConfig, {
+      anthropicContext1MEnabled: false,
+      modelContextLimitsCache: new Map([
+        ["github-copilot/claude-opus-4.6", 144000],
+        ["anthropic/claude-opus-4-6", 144000],
+      ]),
+    })
+
+    await hook.event({
+      event: {
+        type: "message.updated",
+        properties: {
+          info: {
+            role: "assistant",
+            sessionID: "ses_context_upgrade_fallback",
+            providerID: "github-copilot",
+            modelID: "claude-opus-4.6",
+            finish: true,
+            tokens: {
+              input: 112500,
+              output: 0,
+              reasoning: 0,
+              cache: { read: 0, write: 0 },
+            },
+          },
+        },
+      },
+    })
+
+    // when
+    await hook["tool.execute.after"](
+      { tool: "bash", sessionID: "ses_context_upgrade_fallback", callID: "call_upgrade_fallback" },
+      { title: "", output: "test", metadata: null },
+    )
+
+    // then
+    expect(ctx.client.session.summarize).toHaveBeenCalledTimes(1)
+    expect(getSessionModel("ses_context_upgrade_fallback")).toBeUndefined()
+  })
+
+  it("should compact normally after a one-time context upgrade when usage later exceeds upgraded threshold", async () => {
+    // given
+    const pluginConfig = OhMyOpenCodeConfigSchema.parse({
+      agents: {
+        sisyphus: {
+          context_upgrade: {
+            model: "anthropic/claude-opus-4-6",
+          },
+        },
+      },
+    })
+    updateSessionAgent("ses_context_upgrade_recompact", "sisyphus")
+
+    const hook = createPreemptiveCompactionHook(ctx as never, pluginConfig, {
+      anthropicContext1MEnabled: false,
+      modelContextLimitsCache: new Map([
+        ["github-copilot/claude-opus-4.6", 144000],
+        ["anthropic/claude-opus-4-6", 1000000],
+      ]),
+    })
+
+    await hook.event({
+      event: {
+        type: "message.updated",
+        properties: {
+          info: {
+            role: "assistant",
+            sessionID: "ses_context_upgrade_recompact",
+            providerID: "github-copilot",
+            modelID: "claude-opus-4.6",
+            finish: true,
+            tokens: {
+              input: 112500,
+              output: 0,
+              reasoning: 0,
+              cache: { read: 0, write: 0 },
+            },
+          },
+        },
+      },
+    })
+
+    await hook["tool.execute.after"](
+      { tool: "bash", sessionID: "ses_context_upgrade_recompact", callID: "call_upgrade_once" },
+      { title: "", output: "test", metadata: null },
+    )
+
+    expect(ctx.client.session.summarize).not.toHaveBeenCalled()
+
+    const originalNow = Date.now
+    Date.now = () => originalNow() + 61_000
+
+    try {
+      await hook.event({
+        event: {
+          type: "message.updated",
+          properties: {
+            info: {
+              role: "assistant",
+              sessionID: "ses_context_upgrade_recompact",
+              providerID: "anthropic",
+              modelID: "claude-opus-4-6",
+              finish: true,
+              tokens: {
+                input: 800000,
+                output: 0,
+                reasoning: 0,
+                cache: { read: 0, write: 0 },
+              },
+            },
+          },
+        },
+      })
+
+      // when
+      await hook["tool.execute.after"](
+        { tool: "bash", sessionID: "ses_context_upgrade_recompact", callID: "call_recompact" },
+        { title: "", output: "test", metadata: null },
+      )
+    } finally {
+      Date.now = originalNow
+    }
+
+    // then
+    expect(ctx.client.session.summarize).toHaveBeenCalledTimes(1)
   })
 })

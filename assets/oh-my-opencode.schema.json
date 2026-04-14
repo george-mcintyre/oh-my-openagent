@@ -431,6 +431,15 @@
                 }
               },
               "additionalProperties": false
+            },
+            "context_upgrade": {
+              "type": "object",
+              "properties": {
+                "model": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": false
             }
           },
           "additionalProperties": false

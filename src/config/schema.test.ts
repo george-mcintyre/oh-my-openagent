@@ -370,6 +370,39 @@ describe("AgentOverrideConfigSchema", () => {
         expect(result.data.prompt_append).toBe("Extra instructions")
       }
     })
+
+    test("accepts context_upgrade model configuration", () => {
+      // given
+      const config = {
+        context_upgrade: {
+          model: "anthropic/claude-opus-4-6",
+        },
+      }
+
+      // when
+      const result = AgentOverrideConfigSchema.safeParse(config)
+
+      // then
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.context_upgrade?.model).toBe("anthropic/claude-opus-4-6")
+      }
+    })
+
+    test("rejects non-string context_upgrade model", () => {
+      // given
+      const config = {
+        context_upgrade: {
+          model: 123,
+        },
+      }
+
+      // when
+      const result = AgentOverrideConfigSchema.safeParse(config)
+
+      // then
+      expect(result.success).toBe(false)
+    })
   })
 })
 

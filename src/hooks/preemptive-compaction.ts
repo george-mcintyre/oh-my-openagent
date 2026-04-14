@@ -5,46 +5,18 @@ import {
   type ContextLimitModelCacheState,
 } from "../shared/context-limit-resolver"
 
+import {
+  type CachedCompactionState,
+  type TokenInfo,
+  withTimeout,
+} from "./preemptive-compaction-shared"
+import { maybeApplyContextUpgrade } from "./preemptive-compaction-context-upgrade"
 import { resolveCompactionModel } from "./shared/compaction-model-resolver"
 import { createPostCompactionDegradationMonitor } from "./preemptive-compaction-degradation-monitor"
 
 const PREEMPTIVE_COMPACTION_TIMEOUT_MS = 60_000
 const PREEMPTIVE_COMPACTION_THRESHOLD = 0.78
 const PREEMPTIVE_COMPACTION_COOLDOWN_MS = 60_000
-
-declare function setTimeout(handler: () => void, timeout?: number): unknown
-declare function clearTimeout(timeoutID: unknown): void
-
-interface TokenInfo {
-  input: number
-  output: number
-  reasoning: number
-  cache: { read: number; write: number }
-}
-
-interface CachedCompactionState {
-  providerID: string
-  modelID: string
-  tokens: TokenInfo
-}
-
-async function withTimeout<TValue>(
-  promise: Promise<TValue>,
-  timeoutMs: number,
-  errorMessage: string,
-): Promise<TValue> {
-  let timeoutID: unknown
-
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutID = setTimeout(() => {
-      reject(new Error(errorMessage))
-    }, timeoutMs)
-  })
-
-  return await Promise.race([promise, timeoutPromise]).finally(() => {
-    clearTimeout(timeoutID)
-  })
-}
 
 type PluginInput = {
   client: {
@@ -69,6 +41,8 @@ export function createPreemptiveCompactionHook(
 ) {
   const compactionInProgress = new Set<string>()
   const compactedSessions = new Set<string>()
+  const upgradedSessions = new Set<string>()
+  const bypassedUpgradeSessions = new Set<string>()
   const lastCompactionTime = new Map<string, number>()
   const tokenCache = new Map<string, CachedCompactionState>()
 
@@ -112,15 +86,37 @@ export function createPreemptiveCompactionHook(
     if (usageRatio < PREEMPTIVE_COMPACTION_THRESHOLD || !cached.modelID) return
 
     compactionInProgress.add(sessionID)
-    lastCompactionTime.set(sessionID, Date.now())
 
     try {
+      const upgradeResult = maybeApplyContextUpgrade({
+        sessionID,
+        pluginConfig,
+        modelCacheState,
+        cached,
+        currentLimit: actualLimit,
+        totalInputTokens,
+        tokenCache,
+        upgradedSessions,
+        bypassedUpgradeSessions,
+      })
+
+      if (
+        upgradeResult.upgraded
+        && upgradeResult.upgradedLimit !== undefined
+        && totalInputTokens / upgradeResult.upgradedLimit < PREEMPTIVE_COMPACTION_THRESHOLD
+      ) {
+        return
+      }
+
+      const effectiveModel = tokenCache.get(sessionID) ?? cached
       const { providerID: targetProviderID, modelID: targetModelID } = resolveCompactionModel(
         pluginConfig,
         sessionID,
-        cached.providerID,
-        cached.modelID,
+        effectiveModel.providerID,
+        effectiveModel.modelID,
       )
+
+      lastCompactionTime.set(sessionID, Date.now())
 
       await withTimeout(
         ctx.client.session.summarize({
@@ -166,6 +162,8 @@ export function createPreemptiveCompactionHook(
       if (sessionID) {
         compactionInProgress.delete(sessionID)
         compactedSessions.delete(sessionID)
+        upgradedSessions.delete(sessionID)
+        bypassedUpgradeSessions.delete(sessionID)
         lastCompactionTime.delete(sessionID)
         tokenCache.delete(sessionID)
         postCompactionMonitor.clear(sessionID)

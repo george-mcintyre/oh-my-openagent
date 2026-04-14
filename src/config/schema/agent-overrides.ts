@@ -53,6 +53,11 @@ export const AgentOverrideConfigSchema = z.object({
       variant: z.string().optional(),
     })
     .optional(),
+  context_upgrade: z
+    .object({
+      model: z.string().optional(),
+    })
+    .optional(),
 })
 
 export const AgentOverridesSchema = z.object({
