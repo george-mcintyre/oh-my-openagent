@@ -105,6 +105,34 @@ export function createPreemptiveCompactionHook(
         && upgradeResult.upgradedLimit !== undefined
         && totalInputTokens / upgradeResult.upgradedLimit < PREEMPTIVE_COMPACTION_THRESHOLD
       ) {
+        const upgradedModel = tokenCache.get(sessionID) ?? cached
+        lastCompactionTime.set(sessionID, Date.now())
+
+        ctx.client.tui.showToast({
+          body: {
+            title: "Context upgraded",
+            message: `Switched to ${upgradedModel.providerID}/${upgradedModel.modelID} and compacted session to free up context.`,
+            variant: "info",
+            duration: 6000,
+          },
+        }).catch((toastError: unknown) => {
+          log("[preemptive-compaction] Failed to show upgrade toast", {
+            sessionID,
+            toastError: String(toastError),
+          })
+        })
+
+        await withTimeout(
+          ctx.client.session.summarize({
+            path: { id: sessionID },
+            body: { providerID: upgradedModel.providerID, modelID: upgradedModel.modelID, auto: true } as never,
+            query: { directory: ctx.directory },
+          }),
+          PREEMPTIVE_COMPACTION_TIMEOUT_MS,
+          `Context upgrade compaction timed out after ${PREEMPTIVE_COMPACTION_TIMEOUT_MS}ms`,
+        )
+
+        compactedSessions.add(sessionID)
         return
       }
 
