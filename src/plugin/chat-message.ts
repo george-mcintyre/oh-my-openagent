@@ -3,7 +3,7 @@ import type { PluginContext } from "./types"
 
 import { isModelCacheAvailable, log } from "../shared"
 import { getAgentConfigKey } from "../shared/agent-display-names"
-import { getSessionModel, setSessionModel } from "../shared/session-model-state"
+import { getSessionModel, isSessionContextUpgraded, setSessionModel } from "../shared/session-model-state"
 import { getMainSessionID, setSessionAgent, subagentSessions } from "../features/claude-code-session-state"
 import { applyUltraworkModelOverrideOnMessage } from "./ultrawork-model-override"
 import { NATIVE_LOOP_TRIGGERED_FLAG } from "./command-execute-before"
@@ -85,7 +85,7 @@ function getStoredMainSessionModel(
     return undefined
   }
 
-  if (hasExplicitAgentModelOverride(input.agent, pluginConfig)) {
+  if (hasExplicitAgentModelOverride(input.agent, pluginConfig) && !isSessionContextUpgraded(input.sessionID)) {
     return undefined
   }
 
